@@ -5,9 +5,9 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/Tanwarat-Nat/bookings/pkg/config"
-	"github.com/Tanwarat-Nat/bookings/pkg/handlers"
-	"github.com/Tanwarat-Nat/bookings/pkg/render"
+	"github.com/Tanwarat-Nat/bookings/internal/config"
+	"github.com/Tanwarat-Nat/bookings/internal/handlers"
+	"github.com/Tanwarat-Nat/bookings/internal/render"
 
 	"github.com/alexedwards/scs/v2"
 )

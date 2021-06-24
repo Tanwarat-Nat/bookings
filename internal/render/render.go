@@ -7,8 +7,9 @@ import (
 	"net/http"
 	"path/filepath"
 
-	"github.com/Tanwarat-Nat/bookings/pkg/config"
-	"github.com/Tanwarat-Nat/bookings/pkg/models"
+	"github.com/Tanwarat-Nat/bookings/internal/config"
+	"github.com/Tanwarat-Nat/bookings/internal/models"
+	"github.com/justinas/nosurf"
 )
 
 var functions = template.FuncMap{}
@@ -20,13 +21,14 @@ func NewTemplates(a *config.AppConfig) {
 	app = a
 }
 
-// AddDefualtData add  data that available on every page.
-func AddDefaultData(td *models.TemplateData) *models.TemplateData {
+// AddDefualtData adds  data for all template
+func AddDefaultData(td *models.TemplateData, r *http.Request) *models.TemplateData {
+	td.CSRFToken = nosurf.Token(r)
 	return td
 }
 
 // RenderTemplete renders a template
-func RenderTemplete(w http.ResponseWriter, html string, td *models.TemplateData) {
+func RenderTemplete(w http.ResponseWriter, r *http.Request, html string, td *models.TemplateData) {
 	var tc map[string]*template.Template
 
 	if app.UseCache {
@@ -43,11 +45,14 @@ func RenderTemplete(w http.ResponseWriter, html string, td *models.TemplateData)
 
 	buf := new(bytes.Buffer)
 
-	td = AddDefaultData(td)
+	td = AddDefaultData(td, r)
 
-	_ = t.Execute(buf, td)
+	err := t.Execute(buf, td)
+	if err != nil {
+		log.Println(err)
+	}
 
-	_, err := buf.WriteTo(w)
+	_, err = buf.WriteTo(w)
 	if err != nil {
 		log.Println("render: RenderTemplete: Error writing template to browser", err)
 	}
