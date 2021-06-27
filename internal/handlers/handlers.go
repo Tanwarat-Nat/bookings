@@ -7,6 +7,7 @@ import (
 	"net/http"
 
 	"github.com/Tanwarat-Nat/bookings/internal/config"
+	"github.com/Tanwarat-Nat/bookings/internal/forms"
 	"github.com/Tanwarat-Nat/bookings/internal/models"
 	"github.com/Tanwarat-Nat/bookings/internal/render"
 )
@@ -55,16 +56,6 @@ func (m *Repository) About(w http.ResponseWriter, r *http.Request) {
 
 }
 
-// Generals renders the room page
-func (m *Repository) Generals(w http.ResponseWriter, r *http.Request) {
-	render.RenderTemplete(w, r, "generals.html", &models.TemplateData{})
-}
-
-// Majors renders the room page
-func (m *Repository) Majors(w http.ResponseWriter, r *http.Request) {
-	render.RenderTemplete(w, r, "majors.html", &models.TemplateData{})
-}
-
 // Availibility renders the search availibility page
 func (m *Repository) Availibility(w http.ResponseWriter, r *http.Request) {
 	render.RenderTemplete(w, r, "search-availibility.html", &models.TemplateData{})
@@ -97,12 +88,81 @@ func (m *Repository) AvailibilityJSON(w http.ResponseWriter, r *http.Request) {
 	w.Write(out)
 }
 
+// Reservation renders the make a reservation page and display form
+func (m *Repository) Reservation(w http.ResponseWriter, r *http.Request) {
+	var emptyReservation models.Reservation
+	data := make(map[string]interface{})
+	data["reservation"] = emptyReservation
+
+	render.RenderTemplete(w, r, "make-reservation.html", &models.TemplateData{
+		Form: forms.New(nil),
+		Data: data,
+	})
+}
+
+// PostReservation handles the posting of a reservation form
+func (m *Repository) PostReservation(w http.ResponseWriter, r *http.Request) {
+	err := r.ParseForm()
+	if err != nil {
+		log.Println("handlers: PostReservation:", err)
+		return
+	}
+	reservation := models.Reservation{
+		FirstName: r.Form.Get("first_name"),
+		LastName:  r.Form.Get("last_name"),
+		Email:     r.Form.Get("email"),
+		Phone:     r.Form.Get("phone"),
+	}
+	form := forms.New(r.PostForm)
+
+	form.Required("first_name", "last_name", "email", "phone")
+	form.MinLength("first_name", 3, r)
+	form.IsEmail("email")
+
+	if !form.Valid() {
+		data := make(map[string]interface{})
+		data["reservation"] = reservation
+
+		render.RenderTemplete(w, r, "make-reservation.html", &models.TemplateData{
+			Form: form,
+			Data: data,
+		})
+		return
+	}
+
+	m.App.Session.Put(r.Context(), "reservation", reservation)
+	http.Redirect(w, r, "/reservation-summary", http.StatusSeeOther)
+}
+
+// Generals renders the room page
+func (m *Repository) Generals(w http.ResponseWriter, r *http.Request) {
+	render.RenderTemplete(w, r, "generals.html", &models.TemplateData{})
+}
+
+// Majors renders the room page
+func (m *Repository) Majors(w http.ResponseWriter, r *http.Request) {
+	render.RenderTemplete(w, r, "majors.html", &models.TemplateData{})
+}
+
 // Contact renders the contact page
 func (m *Repository) Contact(w http.ResponseWriter, r *http.Request) {
 	render.RenderTemplete(w, r, "contact.html", &models.TemplateData{})
 }
 
-// Reservation renders the make a reservation page and display form
-func (m *Repository) Reservation(w http.ResponseWriter, r *http.Request) {
-	render.RenderTemplete(w, r, "make-reservation.html", &models.TemplateData{})
+func (m *Repository) ReservationSummary(w http.ResponseWriter, r *http.Request) {
+	reservation, ok := m.App.Session.Get(r.Context(), "reservation").(models.Reservation)
+	if !ok {
+		log.Println("handlers: reservationsummary: cannot get item from session")
+		m.App.Session.Put(r.Context(), "error", "Can't get reservation from session")
+		http.Redirect(w, r, "/home", http.StatusTemporaryRedirect)
+		return
+	}
+	m.App.Session.Remove(r.Context(), "reservation")
+
+	data := make(map[string]interface{})
+	data["reservation"] = reservation
+
+	render.RenderTemplete(w, r, "reservation-summary.html", &models.TemplateData{
+		Data: data,
+	})
 }

@@ -1,12 +1,14 @@
 package main
 
 import (
+	"encoding/gob"
 	"log"
 	"net/http"
 	"time"
 
 	"github.com/Tanwarat-Nat/bookings/internal/config"
 	"github.com/Tanwarat-Nat/bookings/internal/handlers"
+	"github.com/Tanwarat-Nat/bookings/internal/models"
 	"github.com/Tanwarat-Nat/bookings/internal/render"
 
 	"github.com/alexedwards/scs/v2"
@@ -19,6 +21,8 @@ var session *scs.SessionManager
 
 // main is the main application function
 func main() {
+	//What am  I going to put in the session
+	gob.Register(models.Reservation{})
 
 	log.Println("Starting the services.")
 
